@@ -1,0 +1,9 @@
+{
+	"dependencies": {
+		"eeui/picture": {
+			"requireName": "eeui/picture",
+			"name": "eeui/picture",
+			"url": "http://eeui.cdn.gmjfw.com/uploads/plugins/1/picture/e1feb56bc8913a66ea3f1784323e0ad2.zip"
+		}
+	}
+}
