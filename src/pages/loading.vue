@@ -1,17 +1,6 @@
 <template>
     <div class="app">
-        <navbar class="navbar">
-            <navbar-item type="left" @click="wrap">
-                <icon content="md-arrow-back" class="iconr"></icon>
-            </navbar-item>
-            <navbar-item type="title">
-                <text class="title">装货</text>
-            </navbar-item>
-            <navbar-item type="right">
-                <icon class="iconr" content="md-refresh"></icon>
-            </navbar-item>
-        </navbar>
-
+        <topHeader :title="'装货'" :url="'home.js'"></topHeader>
         <scroll-view 
             class="scroller"
             ref="scroller"
@@ -32,68 +21,68 @@
             </div>
             
             <div class="main">
-                <div class="wrapper"  v-if="searchResult.length">
+                <div class="wrapper" v-if="loadingStart">
                     <div 
                         class="content-box" 
-                        v-for="result in searchResult" 
-                        :key="result.id"
+                        v-for="result in loadingList" 
+                        :key="result.oid"
                         @click="itemClick(result)"
                     >
                         <div class="row">
                             <text class="tag">物料编码：</text>
-                            <text class="name">{{ result.no }}</text>
+                            <text class="name">{{ result.MaterialCode }}</text>
                         </div>
                         <div class="row">
                             <text class="tag">物料名称：</text>
-                            <text class="name">{{ result.name }}</text>
+                            <text class="name">{{ result.MaterialName }}</text>
                         </div>
                         <div class="row-box">
                             <div class="row-item">
                                 <text class="tag">物料类型：</text>
-                                <text class="name">{{ result.type }}</text>
+                                <text class="name">{{ result.MaterialType }}</text>
                             </div>
                             <div class="row-item">
                                 <text class="tag">物料组：</text>
-                                <text class="name">{{ result.group }}</text>
+                                <text class="name">{{ result.MaterialGroup }}</text>
                             </div>
                         </div>
 
                         <div class="row-box">
                             <div class="row-item">
                                 <text class="tag">发货重量：</text>
-                                <text class="name">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ result.weight }}公斤</text>
+                                <text class="name">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ result.TotalWeight }} {{ result.MeasureUnitId }}</text>
                             </div>
                             <div class="row-item">
                                 <text class="tag">件数：</text>
-                                <text class="name">{{ result.count  }}</text>
+                                <text class="name">{{ result.Qty  }}</text>
                             </div>
                         </div>
 
                         <div class="row-box">
                             <div class="row-item">
                                 <text class="tag">桶型：</text>
-                                <text class="name">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ result.num }}吨桶</text>
+                                <text class="name">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ result.BarrelShape }}吨桶</text>
                             </div>
                             <div class="row-item">
                                 <text class="tag">计划发货日期：</text>
-                                <text class="name">{{ result.date }}</text>
+                                <text class="name">{{ result.PlanDeliveryDate }}</text>
                             </div>
                         </div>
 
                         <div class="row-box">
                             <div class="row-item">
                                 <text class="tag">批次号：</text>
-                                <text class="name"></text>
+                                <text class="name">{{ result.BatchNo }}</text>
                             </div>
                             <div class="row-item">
                                 <text class="tag">交货单行号：</text>
-                                <text class="name"></text>
+                                <text class="name">{{ result.SourceNum }}</text>
                             </div>
                         </div>
 
                         <div class="row">
                             <text class="tag">仓库：</text>
-                            <text class="name"></text>
+                            <text class="name">{{ result.WarehouseId }}</text>
                         </div>
                     </div>
                 </div>
@@ -114,9 +103,140 @@
     </div>
 </template>
 
+
+
+<script>
+import topHeader from '@/components/topHeader';
+import api from '@/API';
+export default {
+    name: 'loading',
+    components: { topHeader },
+    data () {
+        return {
+            scanerImg: 'root://images/new_scaner.png',
+            loadingList: [{
+                oid: 1,
+                BatchNo: 2,
+                TotalWeight: 3,
+                MeasureUnitId: 4,
+                Qty: 5,
+                MaterialCode: 6,
+                MaterialName: 7,
+                MaterialType: 8,
+                MaterialGroup: 9,
+                BarrelShape: 10,
+                PlanDeliveryDate: 11,
+                SourceNo: 12,
+                SourceNum: 13,
+                WarehouseId: 14,
+                TransportTypeId: 15,
+            }],
+            loading_no: '',
+            loadingStart: false
+        }
+    },
+    mounted () {
+        let mountedLoadingInfoCache = eeui.getCaches('mountedLoadingInfoCache'),
+            mountedLoadingNo = eeui.getCaches('mountedLoadingNo');
+        console.log(mountedLoadingInfoCache, mountedLoadingNo);
+
+        if (mountedLoadingInfoCache && mountedLoadingNo) {
+            this.loadingList.push(mountedLoadingInfoCache);
+            this.loading_no = mountedLoadingNo;
+            this.loadingStart = true;
+        }
+
+        eeui.setCaches('mountedLoadingInfoCache', null);
+        eeui.setCaches('mountedLoadingNo', null);
+    },
+    methods: {
+        getLoadingData (onSuc, onErr) {
+            const self = this;
+            function onError (err) {
+                if (onErr) {
+                    onErr(err);
+                } else {
+                    eeui.toast({
+                        message: err.result,
+                        gravity: 'middle'
+                    })
+                }
+            }
+
+            function onSuccess (res) {
+                if (res.status == 'success') {
+                    let result = res.result.data.all_data_rows;
+                    // 541374
+                    result.forEach(v => {
+                        let d = v.data,
+                            loadingInfo = {};
+                        if (d[0] == self.loading_no) {
+                            loadingInfo.oid = d[0];
+                            loadingInfo.BatchNo = d[1];
+                            loadingInfo.TotalWeight = d[2];
+                            loadingInfo.MeasureUnitId = d[3];
+                            loadingInfo.Qty = d[4];
+                            loadingInfo.MaterialCode = d[5];
+                            loadingInfo.MaterialName = d[6];
+                            loadingInfo.MaterialType = d[7];
+                            loadingInfo.MaterialGroup = d[8];
+                            loadingInfo.BarrelShape = d[9];
+                            loadingInfo.PlanDeliveryDate = d[10];
+                            loadingInfo.SourceNo = d[11];
+                            loadingInfo.SourceNum = d[12];
+                            loadingInfo.WarehouseId = d[13];
+                            loadingInfo.TransportTypeId = d[14];
+                            self.loadingList.push(loadingInfo);
+                            onSuc && onSuc(res);
+                            eeui.setCaches('mountedLoadingNo', self.loading_no, 0);
+                            eeui.setCaches('mountedLoadingInfoCache', loadingInfo, 0);
+                        }
+                    })
+                }
+            }
+            api.SVR.invokeService('Loading', [], onSuccess, onError);
+        },
+        itemClick (item) {
+            console.log(item);
+            eeui.setCaches('loadingInfo', item, 0);
+            api.openPage('loading_work.js');
+        },
+        searchEnd () {
+            this.loadingStart = true;
+            this.getLoadingData();
+        },
+        openScaner () {
+            const self = this;
+            api.openScaner({
+                desc: ''
+            }, res => {
+                if (res.status == 'success') {
+                    self.loading_no = JSON.parse(res.text).no;
+                    self.searchEnd();
+                } else if (res.status == 'error') {
+                    console.log(res.source);
+                }
+            })
+        },
+        longpress () {
+            const poster = this.$refs.poster;
+            poster.save(res => {
+                if (res.success) {
+                    eeui.toast({
+                        message: '保存成功',
+                        duration: 3000
+                    });
+                } else {
+                    eeui.toast(res.errorDesc);
+                }
+            })
+        }
+    }
+}
+</script>
+
 <style scoped>
     .app {
-
         flex: 1;
         background-color: rgb(0, 0, 0);
     }
@@ -147,6 +267,7 @@
     .scroller {
         width: 750px;
         flex: 1;
+        height: 1000px;
     }
 
     .search-area {
@@ -182,8 +303,8 @@
     }
 
     .scaner {
-        width: 120px;
-        height: 120px;
+        width: 300px;
+        height: 300px;
     }
 
     .wrapper {
@@ -226,84 +347,3 @@
     }
  
 </style>
-
-<script>
-import api from '@/API';
-export default {
-    name: 'loading',
-    data () {
-        return {
-            scanerImg: 'root://images/scaner_white.png',
-            searchResult: [],
-            loading_no: ''
-        }
-    },
-    methods: {
-        wrap () {
-            eeui.openPage({
-                url: 'home.js',
-                pageType: 'app',
-                animated: true,
-                animatedType: 'push'
-            })
-        },
-        itemClick (item) {
-            eeui.setCaches('loadingInfo', item, 0);
-            eeui.openPage({
-                url: 'loading_work.js',
-                pageType: 'app',
-                animated: true,
-                animatedType: 'push'
-            });
-        },
-        searchEnd () {
-            let result = {
-                id: 0,
-                no: '117003-2020206-0',
-                name: '合成三乙醇胺 工业级_新桶_铁质_墨绿',
-                type: '成品',
-                group: '三乙醇胺',
-                weight: '345.00',
-                count: 678,
-                date: '2020-07-15',
-            };
-            if (this.loading_no == '12345') {
-                let array = [];
-                array.push(result);
-                array.push(result);
-                array.push(result);
-                array.push(result);
-                array.push(result);
-                array.push(result);
-                this.searchResult = array;
-            }
-        },
-        openScaner () {
-            const self = this;
-            api.openScaner({
-                desc: ''
-            }, res => {
-                if (res.status == 'success') {
-                    self.loading_no = JSON.parse(res.text).no;
-                    self.searchEnd();
-                } else if (res.status == 'error') {
-                    console.log(res.source);
-                }
-            })
-        },
-        longpress () {
-            const poster = this.$refs.poster;
-            poster.save(res => {
-                if (res.success) {
-                    eeui.toast({
-                        message: '保存成功',
-                        duration: 3000
-                    });
-                } else {
-                    eeui.toast(res.errorDesc);
-                }
-            })
-        }
-    }
-}
-</script>

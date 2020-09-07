@@ -107,6 +107,7 @@
 
 <script>
 const eeui = app.requireModule('eeui');
+import api from '@/API';
 export default {
     name: '',
     data () {
@@ -132,24 +133,48 @@ export default {
         },
         signIn () {
             // eeui.ajax();
-            if (this.loginInfo.userId && this.loginInfo.userPwd) {
-                if (this.loginInfo.userId == 'admin' && this.loginInfo.userPwd == '123456') {
-                    eeui.setCaches('loginStatu', true, 0);
-                    eeui.setCaches('loginInfo', this.loginInfo, 0);
-                    this.isLogining = true;
-                    eeui.openPage({
-                        url: 'home.js',
-                        pageType: 'app'
-                    })
-                } else {
-                    eeui.toast({
-                        message: '账号或密码错误',
-                        gravity: 'middle'
-                    })
-                }
+            const that = this;
+			let successLogin = function(res){
+				if(res.status == 'success') {
+					console.log(res.result.data);
+					eeui.setCaches('loginInfo', that.loginInfo, 0);
+					eeui.setCaches('loginStatu', true, 0);
+					eeui.setCaches('userinfo', res.result.data, 0);
+					that.isLogining = true;
+					api.openPage('home.js');
+				} else {
+					console.log('error');
+					eeui.toast({
+					    message: '账号或密码错误',
+					    gravity: 'middle'
+					})
+				}
+            }
+			let errorCallback = function(res){
+				eeui.toast({
+				    message: '账号或密码错误',
+				    gravity: 'middle'
+				})
+            }
+            if (this.loginInfo.userId) {
+                api.SVR.doLogin(this.loginInfo.userId, this.loginInfo.userPwd, {}, undefined, null, successLogin, errorCallback);
+                // if (this.loginInfo.userId == 'admin' && this.loginInfo.userPwd == '123456') {
+                //     eeui.setCaches('loginStatu', true, 0);
+                //     eeui.setCaches('loginInfo', this.loginInfo, 0);
+                //     this.isLogining = true;
+                //     eeui.openPage({
+                //         url: 'home.js',
+                //         pageType: 'app'
+                //     })
+                // } else {
+                //     eeui.toast({
+                //         message: '账号或密码错误',
+                //         gravity: 'middle'
+                //     })
+                // }
             } else {
                 eeui.toast({
-                    message: '请输入账号或密码',
+                    message: '请输入账号',
                     gravity: 'middle'
                 })
             }

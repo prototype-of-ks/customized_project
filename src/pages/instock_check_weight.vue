@@ -1,17 +1,6 @@
 <template>
     <div class="app">
-        <navbar class="navbar">
-            <navbar-item type="left" @click="wrap">
-                <icon content="md-arrow-back" class="iconr"></icon>
-            </navbar-item>
-            <navbar-item type="title">
-                <text class="title">入厂检斤</text>
-            </navbar-item>
-            <navbar-item type="right">
-                <icon class="iconr" content="md-refresh"></icon>
-            </navbar-item>
-        </navbar>
-
+        <topHeader :title="'入厂检斤'" :url="'home.js'"></topHeader>
         <div class="content">
             <div class="row">
                 <div class="row-item">
@@ -65,10 +54,43 @@
                 <button class="button save" text="保存"></button>
             </div>
         </div>
-
-
     </div>
 </template>
+
+<script>
+const eeui = app.requireModule('eeui');
+import api from '@/API';
+import topHeader from '@/components/topHeader';
+export default {
+    name: 'instock_check_weight',
+    components: { topHeader },
+    data () {
+        return {
+            no: '-DBDHD202007180033'
+        }
+    },
+    methods: {
+        openScaner () {
+            api.openScaner({
+                desc: ''
+            }, res => {
+                switch (res.status) {
+                    case 'success': 
+                        eeui.toast({
+                            message: '扫码成功'
+                        });
+                        break;
+                    case 'error':
+                        eeui.toast({
+                            message: '扫码失败'
+                        });
+                        break;
+                }
+            })
+        }
+    }
+}
+</script>
 
 <style scoped>
     .app {
@@ -159,44 +181,3 @@
     }
 
 </style>
-
-<script>
-const eeui = app.requireModule('eeui');
-import api from '@/API';
-export default {
-    name: 'instock_check_weight',
-    data () {
-        return {
-            no: '-DBDHD202007180033'
-        }
-    },
-    methods: {
-        wrap () {
-            eeui.openPage({
-                url: 'home.js',
-                pageType: 'app',
-                animated: true,
-                animatedType: 'push'
-            })
-        },
-        openScaner () {
-            api.openScaner({
-                desc: ''
-            }, res => {
-                switch (res.status) {
-                    case 'success': 
-                        eeui.toast({
-                            message: '扫码成功'
-                        });
-                        break;
-                    case 'error':
-                        eeui.toast({
-                            message: '扫码失败'
-                        });
-                        break;
-                }
-            })
-        }
-    }
-}
-</script>

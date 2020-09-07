@@ -1,16 +1,14 @@
 <template>
     <div class="app">
-        <navbar class="navbar">
-            <navbar-item type="left" @click="wrap">
-                <icon content="md-arrow-back" class="iconr"></icon>
-            </navbar-item>
-            <navbar-item type="title">
-                <text class="title">装货叫号</text>
-            </navbar-item>
-            <navbar-item type="right">
-                <icon class="iconr" content="md-refresh"></icon>
-            </navbar-item>
-        </navbar>
+        <topHeader :title="'装货叫号'" :url="'home.js'"></topHeader>
+
+        <div class="content">
+            <div class="header">
+                <text class="text center-text">装货点</text>
+                <text class="text center-text">等待中车辆</text>
+                <text class="text center-text">作业中车辆</text>
+            </div>
+        </div>
 
         <scroll-view 
             class="scroller"
@@ -18,107 +16,184 @@
             @pullLoadListener="pullLoadListener"
             @refreshListener="refreshListener"
         >
-            <div class="search-area">
-                <am-picker
-                    :show.sync="factoryShow"
-                    title="请选择工厂"
-                    placeholder="请选择工厂"
-                    :data="factoryList"
-                    v-model="searchInfo.factory"
-                >
-                    <template slot-scope="{ extra, show }">
-                        <div class="box" @click="show">
-                            <text class="text">工厂：</text>
-                            <text class="text">{{ extra }}</text>
-                            <icon content="md-search" class="iconr iconr-search"></icon>
-                        </div>
-                    </template>
-                </am-picker>
-
-                <am-picker
-                    :show.sync="unloadingAreaShow"
-                    title="请选项卸货区"
-                    placeholder="请选项卸货区"
-                    :data="factoryList"
-                    v-model="searchInfo.handling_address"
-                >
-                    <template slot-scope="{ extra, show }">
-                        <div class="box" @click="show">
-                            <text class="text">装卸点：</text>
-                            <text class="text">{{ extra }}</text>
-                            <icon content="md-search" class="iconr iconr-search"></icon>
-                        </div>
-                    </template>
-                </am-picker>
+            <div class="box" 
+                v-for="loadingCallInfo in loadingCallInfoList"
+                :key="loadingCallInfo.id"
+                @click="getDetailInfo(loadingCallInfo)"
+            >
+                <text class="text center-text">{{ loadingCallInfo.loadingAddress }}</text>
+                <text class="text center-text">{{ loadingCallInfo.waitingTruck }}</text>
+                <text class="text center-text">{{ loadingCallInfo.workingTruck }}</text>
             </div>
-
-            <div class="content" v-for="factory in factoryLists" :key="factory.id">
-                <div class="content-box">
-                    <div class="row">
-                        <text class="factory-name-tag tag">工厂：</text>
-                        <text class="factory-name name">{{ factory.factory_name }}</text>
-                    </div>
-
-                    <div class="row-box">
-                        <div class="row-item">
-                            <text class="handing-port-tag tag">装卸口：</text>
-                            <text class="handing-port-name name">{{ factory.handing_port }}</text>
-                        </div>
-                        <div class="row-item">
-                            <text class="status-tag tag">状态：</text>
-                            <text class="status-name name"></text>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <text class="material-tag tag">物料：</text>
-                        <text class="material-name name">{{ factory.material }}</text>
-                    </div>
-
-                    <div class="row">
-                        <text class="carrier-tag tag">承运商：</text>
-                        <text class="carrier-name name"></text>
-                    </div>
-
-                    <div class="row-box">
-                        <div class="row-item">
-                            <text class="working-truck-tag tag">当前作业车辆：</text>
-                            <text class="working-truck-name name">{{ factory.working_truck }}</text>
-                        </div>
-                        <div class="row-item">
-                            <text class="next-truck-tag tag">后续作业车辆：</text>
-                            <text class="next-truck-name name">{{ factory.next_truck }}</text>
-                        </div>
-                    </div>
-                </div>
-                <button class="call-button" text="叫号"></button>
-            </div>
-
         </scroll-view>
     </div>
 </template>
+
+<script>
+import { AmPicker } from 'weex-amui';
+import api from '@/API';
+import topHeader from '@/components/topHeader';
+export default {
+    name: 'loading_call',
+    components: { AmPicker, topHeader }, 
+    data () {
+        return {
+            factoryShow: false,
+            unloadingAreaShow: false,
+            loadingCallInfoList: [],
+            searchInfo: {
+                factory: ['上海抚佳精细化工有限公司'],
+                handling_address: ['1#']
+            },
+            factoryLists: [],
+            factoryList: [
+                {
+                    label: '上海抚佳精细化工有限公司-1',
+                    value: '上海抚佳精细化工有限公司-1'
+                }, {
+                    label: '上海抚佳精细化工有限公司-2',
+                    value: '上海抚佳精细化工有限公司-2'
+                }, {
+                    label: '上海抚佳精细化工有限公司-3',
+                    value: '上海抚佳精细化工有限公司-3'
+                },
+            ]
+        }
+    },
+    mounted () {
+        eeui.setCaches('loadingCallDetailInfo', null);
+        this.getLoadingCallInfo();
+    },
+    methods: {
+        getLoadingCallInfo (onSuc, onErr) {
+            const self = this;
+            function onError (err) {
+                console.log(err);
+                if (onErr) {
+                    onErr(err)
+                } else {
+                    eeui.toast({
+                        message: err.result,
+                        gravity: 'middle'
+                    })
+                }
+            }
+            function onSuccess (res) {
+                if (res.status == 'success') {
+                    let result = res.result.data.all_data_rows;
+                    result.forEach(v => {
+                        let d = v.data,
+                            loadingCallInfo = {};
+                        loadingCallInfo.loadingAddress = d[0];
+                        loadingCallInfo.id = d[1];
+                        loadingCallInfo.waitingTruck = d[2];
+                        loadingCallInfo.workingTruck = d[3];
+                        self.loadingCallInfoList.push(loadingCallInfo);
+                    })
+                    onSuc && onSuc(res);
+                }
+            }
+            api.SVR.invokeService('LoadingUnload', [], onSuccess, onError);
+        },
+        // 上拉加载新数据
+        pullLoadListener () {
+            // let node = this.$refs.scroller;
+            // this.getLoadingCallInfo(function () {
+            //     node.setHasMore(true);
+            //     node.refreshed();
+            //     eeui.toast({
+            //         message: '数据刷新成功',
+            //         gravity: 'middle'
+            //     })
+            // }, function () {
+            //     node.setHasMore(true);
+            //     node.refreshed();
+            //     eeui.toast({
+            //         message: '数据刷新失败',
+            //         gravity: 'middle'
+            //     })
+            // })
+        },
+        // 下拉刷新数据
+        refreshListener () {
+            let node = this.$refs.scroller;
+            this.getLoadingCallInfo(function () {
+                node.setHasMore(false);
+                node.refreshed();
+                eeui.toast({
+                    message: '数据刷新成功',
+                    gravity: 'middle'
+                })
+            }, function () {
+                node.setHasMore(false);
+                node.refreshed();
+                eeui.toast({
+                    message: '数据刷新失败',
+                    gravity: 'middle'
+                })
+            })
+            // let newList = [];
+            // for (let i = 1; i <= 10; i++) {
+            //     newList.push({
+            //         factory_name: '上海抚佳精细化工有限公司',
+            //         handing_port: '1#装置',
+            //         working_truck: '',
+            //         material: '物料1',
+            //         next_truck: '沪C1234F'
+            //     });
+            // }
+
+            // if (    
+            //     this.searchInfo.factory[0] != '' 
+            //     && this.searchInfo.handling_address[0] != ''
+            // ) {
+            //     setTimeout(() => {
+            //         this.factoryLists = newList;
+            //         this.$refs.scroller.setHasMore(true);
+            //         this.$refs.scroller.refreshed();
+            //         eeui.toast('刷新数据成功');
+            //     }, 1000);
+            // } else {
+            //     setTimeout(() => {
+            //         // this.$refs.scroller.setHasMore(false);
+            //         this.$refs.scroller.refreshed();
+            //         eeui.toast('无新数据');
+            //     }, 2500)
+            // }
+
+        },
+        getDetailInfo (loadingCallInfo) {
+            console.log(loadingCallInfo);
+            eeui.setCaches('loadingCallDetailInfo', loadingCallInfo, 0);
+            api.openPage('loading_call_detail.js');
+        }
+    }
+}
+</script>
 
 <style scoped>
     .app {
         flex: 1;
         background-color: rgb(35, 35, 35);
+        align-items: center;
     }
 
     .navbar {
         background-color: rgb(52, 77, 178);
         height: 80px;
+        width: 750px;
     }
 
     .title {
-        font-size: 28px;
+        font-size: 36px;
         color: rgb(255, 255, 255);
     }
 
     .text {
-        font-size: 28px;
+        font-size: 36px;
         line-height: 60px;
         color: rgb(255, 255, 255);
-        padding-right: 28px;
+        
     }
 
     .iconr {
@@ -129,8 +204,10 @@
     }
 
     .scroller {
-        width: 750px;
-        flex: 1;
+        width: 700px;
+        height: 1000px;
+        justify-content: center;
+        align-items: center;
     }
 
     .iconr-search {
@@ -158,18 +235,11 @@
 
     .content {
         width: 750px;
-        padding: 30px;
-        flex-direction: row;
-        flex-wrap: nowrap;
-    }
-
-    .content-box {
+        box-sizing: border-box;
         flex-direction: column;
+        flex-wrap: nowrap;
         justify-content: center;
-        align-items: flex-start;
-        border-bottom-style: solid;
-        border-bottom-color: rgb(255, 255, 255);
-        border-bottom-width: 2px;
+        align-items: center;
     }
 
     .row {
@@ -203,83 +273,34 @@
         background-color: rgb(52, 77, 178);
     }
 
+    .header {
+        width: 700px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom-style: solid;
+        border-bottom-width: 2px;
+        border-bottom-color: rgb(255, 255, 255);
+    }
+
+    .content-box-container {
+        width: 700px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .box {
+        width: 700px;
+        height: 90px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .center-text {
+        width: 240px;
+        text-align: center;
+    }
 
 </style>
-
-<script>
-import { AmPicker } from 'weex-amui';
-import api from '@/API';
-export default {
-    name: 'loading_call',
-    components: { AmPicker },
-    data () {
-        return {
-            factoryShow: false,
-            unloadingAreaShow: false,
-            searchInfo: {
-                factory: ['上海抚佳精细化工有限公司'],
-                handling_address: ['1#']
-            },
-            factoryLists: [],
-            factoryList: [
-                {
-                    label: '上海抚佳精细化工有限公司-1',
-                    value: '上海抚佳精细化工有限公司-1'
-                }, {
-                    label: '上海抚佳精细化工有限公司-2',
-                    value: '上海抚佳精细化工有限公司-2'
-                }, {
-                    label: '上海抚佳精细化工有限公司-3',
-                    value: '上海抚佳精细化工有限公司-3'
-                },
-            ]
-        }
-    },
-    methods: {
-        wrap () {
-            api.openPage('home.js');
-        },
-        // 上拉加载新数据
-        pullLoadListener () {
-            let count = this.factoryLists.length;
-            let node = this.$refs.scroller;
-            if (count >= 10) {
-                node.setHasMore(false);
-                eeui.toast('数据加载完毕， 无新数据')
-            }
-        },
-        // 下拉刷新数据
-        refreshListener () {
-            let newList = [];
-            for (let i = 1; i <= 10; i++) {
-                newList.push({
-                    factory_name: '上海抚佳精细化工有限公司',
-                    handing_port: '1#装置',
-                    working_truck: '',
-                    material: '物料1',
-                    next_truck: '沪C1234F'
-                });
-            }
-
-            if (    
-                this.searchInfo.factory[0] != '' 
-                && this.searchInfo.handling_address[0] != ''
-            ) {
-                setTimeout(() => {
-                    this.factoryLists = newList;
-                    this.$refs.scroller.setHasMore(true);
-                    this.$refs.scroller.refreshed();
-                    eeui.toast('刷新数据成功');
-                }, 1000);
-            } else {
-                setTimeout(() => {
-                    // this.$refs.scroller.setHasMore(false);
-                    this.$refs.scroller.refreshed();
-                    eeui.toast('无新数据');
-                }, 2500)
-            }
-
-        }
-    }
-}
-</script>

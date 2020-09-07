@@ -1,15 +1,6 @@
 <template>
     <div class="app">
-        <navbar class="navbar">
-            <navbar-item type="left" @click="wrap"></navbar-item>
-            <navbar-item type="title">
-                <text class="title">批次</text>
-            </navbar-item>
-            <navbar-item type="right">
-                <icon class="iconr" content="md-refresh"></icon>
-            </navbar-item>
-        </navbar>
-
+        <topHeader :title="'批次'" :url="'home.js'"></topHeader>
         <div class="main">
             <div class="head">
                 <div>
@@ -44,6 +35,49 @@
         </wxc-dialog>
     </div>
 </template>
+
+<script>
+const eeui = app.requireModule('eeui');
+import { WxcDialog } from 'weex-ui';
+import topHeader from '@/components/topHeader';
+import api from '@/API';
+export default {
+    components: { WxcDialog, topHeader },
+    name: 'batch_fill',
+    data () {
+        return {
+            showDialog: false,
+            isChecked: false,
+            batchList: [{
+                aNo: 'FB19810C38',
+                count: '50,300'
+            }, {
+                aNo: 'FB19810C38',
+                count: '50,300'
+            }, {
+                aNo: 'FB19810C38',
+                count: '50,300'
+            }],
+            selectedBatch: {}
+        }
+    },
+    methods: {
+        selectBatch (v) {
+            this.showDialog = true;  
+            this.selectedBatch = v;
+        },
+        wxcDialogCancelBtnClicked () {
+            this.showDialog = false;
+        },
+        wxcDialogConfirmBtnClicked () {
+            const self = this;
+            this.showDialog = false;
+            eeui.setCaches('selectedBatch', self.selectedBatch);
+            api.openPage('loading_work.js');
+        }
+    }
+}
+</script>
 
 <style scoped>
     .app {
@@ -95,52 +129,3 @@
         align-items: center;
     }
 </style>
-
-<script>
-const eeui = app.requireModule('eeui');
-import { WxcDialog } from 'weex-ui';
-export default {
-    components: { WxcDialog },
-    name: 'batch_fill',
-    data () {
-        return {
-            showDialog: false,
-            isChecked: false,
-            batchList: [{
-                aNo: 'FB19810C38',
-                count: '50,300'
-            }, {
-                aNo: 'FB19810C38',
-                count: '50,300'
-            }, {
-                aNo: 'FB19810C38',
-                count: '50,300'
-            }],
-            selectedBatch: {}
-        }
-    },
-    methods: {
-        wrap () {
-            eeui.openPage({
-                url: 'loading_work.js',
-                pageType: 'app',
-                animated: true,
-                animatedType: 'push'
-            })
-        },
-        selectBatch (v) {
-            this.showDialog = true;  
-            this.selectedBatch = v;
-        },
-        wxcDialogCancelBtnClicked () {
-            this.showDialog = false;
-        },
-        wxcDialogConfirmBtnClicked () {
-            const self = this;
-            this.showDialog = false;
-            eeui.setCaches('selectedBatch', self.selectedBatch);
-            this.wrap();
-        }
-    }
-}
-</script>

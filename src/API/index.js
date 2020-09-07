@@ -12,6 +12,8 @@ let CLIENT_ID = null;
  */
 export const encryption = (publicKey, data) => {
     let rsa = new RSA.RSAKey();
+	console.log(publicKey.modulus, publicKey.exponent)
+	
     rsa.setPublic(publicKey.modulus, publicKey.exponent);
     return rsa.encrypt_b64(JSON.stringify(data));
 }
@@ -131,8 +133,6 @@ const SVR = {
     getPublicKey(params = { isWeb: true, service: 'GetPublicKey'}) {
         let postData = this.transData(params),
             url = this.getNormalizedUri(params, TEST_URL + '/servlet');
-
-        console.log(url);
         return new Promise((resolve, reject) => {
             ajax({
                 url: url,
@@ -141,6 +141,7 @@ const SVR = {
                 dataType: 'json',
                 timeout: 5000,
                 success (res) {
+                    console.log(res);
                     resolve(res);
                 },
                 error (res) {
@@ -150,15 +151,15 @@ const SVR = {
             })
         })
     },
-    doLogin(username, password, sessionPara = {}, validateCode, tmpClientId) {
+    doLogin(username, password, sessionPara = {}, validateCode, tmpClientId,sucCallback,errorCallback) {
         this.getPublicKey().then(publicKey => {
             console.log(publicKey);
             let loginInfo = {};
             loginInfo.user = username;
             loginInfo.password = password;
             loginInfo.validatecode = validateCode;
-            let data = encryption(publicKey, loginInfo);
 
+            let data = encryption(publicKey.result.data, loginInfo);
             let opts = {
                 url: TEST_URL + '/servlet',
                 logininfo: data,
@@ -168,8 +169,8 @@ const SVR = {
                 service: 'Authenticate',
                 timezone: 'Asia/Shanghai'
             };
-            
-            this.getData(opts.url, opts);
+            console.log(opts);
+            this.getData(opts.url, opts,sucCallback,errorCallback);
         })
     },
     getData (url, params, sucCallback, errorCallback) {
@@ -182,25 +183,76 @@ const SVR = {
             url: url,
             dataType: 'json',
             data: postData,
+			headers: { 
+                clientID: eeui.getCaches('userinfo').clientID,
+                Referer: 'https://testwl.jiahua.com/scm/'
+            },
             // headers: { appKey: 'Global' },
             method: 'POST',
             success (res) {
-                console.log(res.result.data.clietId);
-                return res;
+				if (sucCallback) {
+					sucCallback(res)
+				}
             },
             error (res) {
-                console.log(res);
+				if (errorCallback) {
+					errorCallback(res)
+				}
             }
         })
+    },
+	invokeService (name, args, sucCallback, errorCallback){
+		let data = {
+			service: "InvokeService",
+			extSvrName: name,
+			cmd :"InvokeExtService",
+		};
+	    if (args.length > 0) {
+			let paras = [];
+			for (let i = 0; i < args.length; i++) {
+				let para = args[i];
+				paras.push(para);
+			}
+			data.paras = JSON.stringify(this.toJSONArray(paras));
+	    }
+		this.getData(TEST_URL + '/yigoServlet', data, sucCallback, errorCallback);
+    },
+	toJSONArray (array) {
+		if (!array){
+			return null;
+		}
+		let jsonArray = new Array();
+		for(let i = 0;i< array.length;i++){
+			jsonArray[i] = this.convertJSON(array[i]); 
+		}
+		return jsonArray;
+	},
+	convertJSON (para) {
+		let json = {};
+		if (para == null){
+			json.value = null;
+			json.dataType =-1;
+		} else if (typeof para == 'boolean'){
+			json.value = para;
+			json.dataType = 6
+		} else if (typeof para == 'string'){
+			json.value = para;
+			json.dataType = 2
+		} else if (typeof para == 'number'){
+			json.value = para;
+			json.dataType = 7
+		} else {
+			json.value=para;
+			json.dataType =2;
+		}
+		return json
     }
 }
-
-SVR.doLogin('fy', '', {}, undefined, CLIENT_ID);
-
+// SVR.uploadFile();
 export default {
     openPage,
     openScaner,
     pic,
     encryption,
-
+	SVR,
 }

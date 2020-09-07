@@ -1,16 +1,6 @@
 <template>
     <div class="app">
-        <navbar class="navbar">
-            <navbar-item type="left" @click="wrap">
-                <icon content="md-arrow-back" class="iconr"></icon>
-            </navbar-item>
-            <navbar-item type="title">
-                <text class="title">自备桶入库</text>
-            </navbar-item>
-            <navbar-item type="right">
-                <icon class="iconr" content="md-refresh"></icon>
-            </navbar-item>
-        </navbar>
+        <topHeader :title="'自备桶入库'" :url="'home.js'"></topHeader>
 
         <div class="main">
             <div class="head">
@@ -114,8 +104,8 @@
             </div>
             <div v-else class="occupancy">
                 <image 
-                    src="root://images/scaner_white.png" 
-                    style="width: 120px; height: 120px"
+                    src="root://images/new_scaner.png" 
+                    style="width: 300px; height: 300px"
                     @click="openScaner"
                 ></image>
             </div>
@@ -212,7 +202,9 @@
 <script>
 const eeui = app.requireModule('eeui');
 import api from '@/API';
+import topHeader from '@/components/topHeader';
 export default {
+    components: { topHeader },
     data () {
         return {
             startUnloadingBtnTxt: '开始卸货',
@@ -234,21 +226,28 @@ export default {
         }
     },
     methods: {
-        wrap () {
-            eeui.openPage({
-                url: 'home.js',
-                pageType: 'app',
-                animated: true,
-                animatedType: 'push'
-            })
-        },
         startUnloading () {
             if (this.show) {
 
-            } else {            
+            } else {     
+                this.getPailStockDetail();       
                 this.startUnloadingBtnTxt = '卸货完成';
                 this.show = true;
             }
+        },
+        getPailStockDetail () {
+            const self = this;
+            function onSuccess (res) {
+                console.log(res);
+                if (res.status == 'success') {
+                    let result = res.result.data;
+                    console.log(result);
+                }
+            }
+            function onErr (err) {
+                console.log(err);
+            }
+            api.SVR.invokeService('PailStockInIn', ['SHFJ-ZBTLYD202008270001'], onSuccess, onErr);
         },
         openScaner () {
             api.openScaner({

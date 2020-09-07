@@ -1,16 +1,6 @@
 <template>
     <div class="app">
-        <navbar class="navbar">
-            <navbar-item type="left" @click="wrap">
-                <icon content="md-arrow-back" class="iconr"></icon>
-            </navbar-item>
-            <navbar-item type="title">
-                <text class="title">装货作业</text>
-            </navbar-item>
-            <navbar-item type="right">
-                <icon class="iconr" content="md-refresh"></icon>
-            </navbar-item>
-        </navbar>
+        <topHeader :title="'装货作业'" :url="'loading.js'"></topHeader>
 
         <div class="content">
             <div class="row">
@@ -144,6 +134,133 @@
         ></wxc-dialog>
     </div>
 </template>
+
+
+
+<script>
+const eeui = app.requireModule('eeui');
+import { WxcTabPage, WxcPanItem, BindEnv, WxcDialog } from 'weex-ui';
+import Config from '@/config/tabPage.js';
+import api from '@/API';
+import topHeader from '@/components/topHeader';
+export default {
+    name: 'loading_work',
+    components: { WxcTabPage, WxcPanItem, WxcDialog, topHeader },
+    data () {
+        return {
+            startLoadingBtnTxt: '开始装货',
+            materialNo: '',
+            materialName: '',
+            startDate: '',
+            selected: 0,
+            tabTitles: Config.tabTitles,
+            tabStyles: Config.tabStyles,
+            loadingWorkInfoList: [{
+                id: 0,
+                weight: '',
+                count: '',
+                // 指定批次号
+                pNo: '',
+                // 实际批次号
+                aNo: '',
+                // 指定仓库号
+                pStock: '',
+                // 实际仓库号
+                aStock: '',
+                barrelType: ''
+            }],
+            panItemShow: false,
+            dialogShow: false,
+            cameraPicList: [],
+            deletePicSrc: ''
+        }
+    },
+    mounted () {
+        let loadingInfo = eeui.getCaches('loadingInfo'),
+            batchInfo = eeui.getCaches('selectedBatch');
+        if (loadingInfo) {
+            this.materialNo = loadingInfo.no;
+            this.materialName = loadingInfo.name;
+            this.startDate = loadingInfo.date;
+        } 
+        if (batchInfo) {
+            this.startLoading();
+            let loadingWorkInfo = {
+                weight: '',
+                count: '',
+                // 指定批次号
+                pNo: '',
+                // 实际批次号
+                aNo: '',
+                // 指定仓库号
+                pStock: '',
+                // 实际仓库号
+                aStock: '12',
+                barrelType: ''
+            };
+            loadingWorkInfo.count = batchInfo.count;
+            loadingWorkInfo.aNo = batchInfo.aNo;
+            this.loadingWorkInfoList.push(loadingWorkInfo);
+        }
+
+        eeui.setCaches('selectedBatch', null);
+    },
+    methods: {
+        startLoading () {
+            if (this.panItemShow) {
+                console.log('装货完成');
+            }
+            // eeui.openPage({
+            //     url: 'test.js',
+            //     pageType: 'app'
+            // })
+            this.startLoadingBtnTxt = '装货完成';
+            this.panItemShow = true;
+        },
+        batchClick () {
+            eeui.openPage({
+                url: 'batch_fill.js',
+                pageType: 'app',
+                animated: true,
+                animatedType: 'push'
+            })
+        },
+        wxcTabPageCurrentTabSelected () {
+        },
+        wxcPanItemPan (e) {
+            if (BindEnv.supportsEBForAndroid()) {
+                this.$refs['wxc-tab-page'].bindExp(e.element);
+            }
+        },
+
+        // 处理图片
+        wxcDialogCancelBtnClicked () {
+            this.dialogShow = false;
+        },
+        wxcDialogConfirmBtnClicked () {
+            const self = this;
+            this.cameraPicList.forEach((pic, index) => {
+                if (self.deletePicSrc == pic) {
+                    self.cameraPicList.splice(index, 1);
+                }
+            });  
+            this.dialogShow = false;
+        },
+        cameraPicHandle (src) {
+            this.deletePicSrc = src;
+            this.dialogShow = true;
+        },
+        getPic () {
+            const self = this;
+            api.pic({}, res => {
+                if (res.status == 'success') {
+                    self.cameraPicList.push(res.lists[0].path);
+                }
+            })
+        },
+    }
+}
+</script>
 
 <style scoped>
     .app {
@@ -279,135 +396,3 @@
         padding: 30px;
     }
 </style>
-
-<script>
-const eeui = app.requireModule('eeui');
-import { WxcTabPage, WxcPanItem, BindEnv, WxcDialog } from 'weex-ui';
-import Config from '@/config/tabPage.js';
-import api from '@/API';
-export default {
-    name: 'loading_work',
-    components: { WxcTabPage, WxcPanItem, WxcDialog },
-    data () {
-        return {
-            startLoadingBtnTxt: '开始装货',
-            materialNo: '',
-            materialName: '',
-            startDate: '',
-            selected: 0,
-            tabTitles: Config.tabTitles,
-            tabStyles: Config.tabStyles,
-            loadingWorkInfoList: [{
-                id: 0,
-                weight: '',
-                count: '',
-                // 指定批次号
-                pNo: '',
-                // 实际批次号
-                aNo: '',
-                // 指定仓库号
-                pStock: '',
-                // 实际仓库号
-                aStock: '',
-                barrelType: ''
-            }],
-            panItemShow: false,
-            dialogShow: false,
-            cameraPicList: [],
-            deletePicSrc: ''
-        }
-    },
-    mounted () {
-        let loadingInfo = eeui.getCaches('loadingInfo'),
-            batchInfo = eeui.getCaches('selectedBatch');
-        if (loadingInfo) {
-            this.materialNo = loadingInfo.no;
-            this.materialName = loadingInfo.name;
-            this.startDate = loadingInfo.date;
-        } 
-        if (batchInfo) {
-            this.startLoading();
-            let loadingWorkInfo = {
-                weight: '',
-                count: '',
-                // 指定批次号
-                pNo: '',
-                // 实际批次号
-                aNo: '',
-                // 指定仓库号
-                pStock: '',
-                // 实际仓库号
-                aStock: '12',
-                barrelType: ''
-            };
-            loadingWorkInfo.count = batchInfo.count;
-            loadingWorkInfo.aNo = batchInfo.aNo;
-            this.loadingWorkInfoList.push(loadingWorkInfo);
-        }
-
-        eeui.setCaches('selectedBatch', null);
-    },
-    methods: {
-        wrap () {
-            eeui.openPage({
-                url: 'loading.js',
-                pageType: 'app',
-                animated: true,
-                animatedType: 'push'
-            })
-        },
-        startLoading () {
-            if (this.panItemShow) {
-                console.log('装货完成');
-            }
-            // eeui.openPage({
-            //     url: 'test.js',
-            //     pageType: 'app'
-            // })
-            this.startLoadingBtnTxt = '装货完成';
-            this.panItemShow = true;
-        },
-        batchClick () {
-            eeui.openPage({
-                url: 'batch_fill.js',
-                pageType: 'app',
-                animated: true,
-                animatedType: 'push'
-            })
-        },
-        wxcTabPageCurrentTabSelected () {
-        },
-        wxcPanItemPan (e) {
-            if (BindEnv.supportsEBForAndroid()) {
-                this.$refs['wxc-tab-page'].bindExp(e.element);
-            }
-        },
-
-        // 处理图片
-        wxcDialogCancelBtnClicked () {
-            this.dialogShow = false;
-        },
-        wxcDialogConfirmBtnClicked () {
-            const self = this;
-            this.cameraPicList.forEach((pic, index) => {
-                if (self.deletePicSrc == pic) {
-                    self.cameraPicList.splice(index, 1);
-                }
-            });  
-            this.dialogShow = false;
-        },
-        cameraPicHandle (src) {
-            this.deletePicSrc = src;
-            this.dialogShow = true;
-        },
-        getPic () {
-            const self = this;
-            api.pic({}, res => {
-                if (res.status == 'success') {
-                    self.cameraPicList.push(res.lists[0].path);
-                }
-            })
-        },
-    }
-}
-</script>
